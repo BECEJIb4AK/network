@@ -13,7 +13,7 @@ import java.net.SocketTimeoutException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
-
+ 
 abstract public class MyAbstractSocket {
 	private final static int BUFFER_SIZE = 4096;
 	private final static int TIMEOUT = 200;
@@ -127,83 +127,83 @@ abstract public class MyAbstractSocket {
 		socket = new DatagramSocket(localPort);
 		socket.setSoTimeout(TIMEOUT);
 			
-			netThread = new Thread(new Runnable() {
-				public void run() {
-					synchronized (monitor) {
-						try {
-							monitor.wait();
-						} catch (InterruptedException e1) {
-						}
+		netThread = new Thread(new Runnable() {
+			public void run() {
+				synchronized (monitor) {
+					try {
+						monitor.wait();
+					} catch (InterruptedException e1) {
 					}
-					while (connectionEstablshed) {
-						try {
-							Thread.sleep(100);
-						} catch (InterruptedException e1) {
-						}
-						MyTcpPacket tcpPacket = null;
-						try {
-							tcpPacket = tryReceiveMyTcpPacket();
-						} catch (SocketTimeoutException e) {
-						} catch (IOException e) {
-							e.printStackTrace();
-						} catch (ClassNotFoundException e) {
-							e.printStackTrace();
-						}
-						if (tcpPacket != null) {
-							int checkSum = tcpPacket.getCheckSum();
-							tcpPacket.countCheckSum();
-							if (checkSum == tcpPacket.getCheckSum()) {
-								if (tcpPacket.isFin()) {
-									try {
-										close();
-									} catch (IOException e) {
-										e.printStackTrace();
-									}
-									break;
+				}
+				while (connectionEstablshed) {
+					try {
+						Thread.sleep(100);
+					} catch (InterruptedException e1) {
+					}
+					MyTcpPacket tcpPacket = null;
+					try {
+						tcpPacket = tryReceiveMyTcpPacket();
+					} catch (SocketTimeoutException e) {
+					} catch (IOException e) {
+						e.printStackTrace();
+					} catch (ClassNotFoundException e) {
+						e.printStackTrace();
+					}
+					if (tcpPacket != null) {
+						int checkSum = tcpPacket.getCheckSum();
+						tcpPacket.countCheckSum();
+						if (checkSum == tcpPacket.getCheckSum()) {
+							if (tcpPacket.isFin()) {
+								try {
+									close();
+								} catch (IOException e) {
+									e.printStackTrace();
 								}
-								if (tcpPacket.getData().length() > 0) {//пришедшие данные
-									if (acknowledgementNumber == tcpPacket.getSequenceNumber()) {
-										acknowledgementNumber += tcpPacket.getData().length();
-										synchronized (dataForReceiving) {
-											dataForReceiving.add(tcpPacket.getData());
-											dataForReceiving.notify();
-										}
-									}
-								}
-								synchronized (packetsForSending) {//пришедшее подтверждение
-									if (packetsForSending.size() > 0) {
-										MyTcpPacket tcpPacket_ = packetsForSending.get(0);
-										if (sequenceNumber + tcpPacket_.getData().length() == tcpPacket.getAcknowledgementNumber()) {
-											sequenceNumber += tcpPacket_.getData().length();
-											packetsForSending.remove(0);
-										}										
-									}
-								}
-							} else {
+								break;
 							}
-							
+							if (tcpPacket.getData().length() > 0) {//пришедшие данные
+								if (acknowledgementNumber == tcpPacket.getSequenceNumber()) {
+									acknowledgementNumber += tcpPacket.getData().length();
+									synchronized (dataForReceiving) {
+										dataForReceiving.add(tcpPacket.getData());
+										dataForReceiving.notify();
+									}
+								}
+							}
+							synchronized (packetsForSending) {//пришедшее подтверждение
+								if (packetsForSending.size() > 0) {
+									MyTcpPacket tcpPacket_ = packetsForSending.get(0);
+									if (sequenceNumber + tcpPacket_.getData().length() == tcpPacket.getAcknowledgementNumber()) {
+										sequenceNumber += tcpPacket_.getData().length();
+										packetsForSending.remove(0);
+									}										
+								}
+							}
 						} else {
 						}
 						
-						synchronized (packetsForSending) {//отправка
-							MyTcpPacket tcpPacket_;
-							if (packetsForSending.size() > 0) {
-								tcpPacket_ = packetsForSending.get(0);
-							} else {
-								tcpPacket_ = new MyTcpPacket(getLocalPort(), getPartnerPort(), sequenceNumber, acknowledgementNumber, false, false, false, "");
-							}
-							try {
-								sendMyTcpPacket(tcpPacket_);
-							} catch (IOException e) {
-								e.printStackTrace();
-							}
-						}
-					
+					} else {
 					}
+					
+					synchronized (packetsForSending) {//отправка
+						MyTcpPacket tcpPacket_;
+						if (packetsForSending.size() > 0) {
+							tcpPacket_ = packetsForSending.get(0);
+						} else {
+							tcpPacket_ = new MyTcpPacket(getLocalPort(), getPartnerPort(), sequenceNumber, acknowledgementNumber, false, false, false, "");
+						}
+						try {
+							sendMyTcpPacket(tcpPacket_);
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
+				
 				}
-			});
-			netThread.start();
-		}
+			}
+		});
+		netThread.start();
+	}
 	
 
 	public void processNet() {
