@@ -60,16 +60,16 @@ abstract public class MyAbstractSocket {
 
 	protected void sendMyTcpPacket(MyTcpPacket tcpPacket) throws IOException {
 		if (connectionEstablshed) {
+			int rand = random.nextInt(); 
+			if (rand % 3 == 1) {
+				return;
+			}
+			if (rand % 3 == 2) {
+				tcpPacket.corrupt();
+			}
 			tcpPacket.setAcknowledgementNumber(acknowledgementNumber);
 			tcpPacket.setSequenceNumber(sequenceNumber);
 			tcpPacket.countCheckSum();
-		}
-		int rand = random.nextInt(); 
-		if (rand % 3 == 1) {
-			return;
-		}
-		if (rand % 3 == 2) {
-			tcpPacket.corrupt();
 		}
 		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 		ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
